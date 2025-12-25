@@ -1,0 +1,350 @@
+================================================================================
+LARAVEL BEYONDCHATS ARTICLES CRUD - COMPLETE PROJECT FILES
+================================================================================
+
+This file contains all the code needed to set up a Laravel CRUD API for 
+BeyondChats articles.
+================================================================================
+1. DATABASE MIGRATION
+File: database/migrations/2024_01_01_000000_create_articles_table.php
+================================================================================
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('articles', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->string('slug')->unique();
+            $table->text('excerpt')->nullable();
+            $table->longText('content')->nullable();
+            $table->string('author')->nullable();
+            $table->string('featured_image')->nullable();
+            $table->string('source_url')->nullable();
+            $table->timestamp('published_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('articles');
+    }
+};
+
+================================================================================
+2. ELOQUENT MODEL
+File: app/Models/Article.php
+================================================================================
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Article extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'title',
+        'slug',
+        'excerpt',
+        'content',
+        'author',
+        'featured_image',
+        'source_url',
+        'published_at',
+    ];
+
+    protected $casts = [
+        'published_at' => 'datetime',
+    ];
+}
+
+================================================================================
+3. API CONTROLLER
+File: app/Http/Controllers/Api/ArticleController.php
+================================================================================
+
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Article;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
+
+class ArticleController extends Controller
+{
+    /**
+     * Display a listing of articles.
+     */
+    public function index(): JsonResponse
+    {
+        $articles = Article::orderBy('published_at', 'desc')->paginate(10);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $articles,
+        ]);
+    }
+
+    /**
+     * Store a newly created article.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'excerpt' => 'nullable|string',
+            'content' => 'nullable|string',
+            'author' => 'nullable|string|max:255',
+            'featured_image' => 'nullable|url',
+            'source_url' => 'nullable|url',
+            'published_at' => 'nullable|date',
+        ]);
+
+        $validated['slug'] = Str::slug($validated['title']) . '-' . uniqid();
+
+        $article = Article::create($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Article created successfully',
+            'data' => $article,
+        ], 201);
+    }
+
+    /**
+     * Display the specified article.
+     */
+    public function show(Article $article): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $article,
+        ]);
+    }
+
+    /**
+     * Update the specified article.
+     */
+    public function update(Request $request, Article $article): JsonResponse
+    {
+        $validated = $request->validate([
+            'title' => 'sometimes|required|string|max:255',
+            'excerpt' => 'nullable|string',
+            'content' => 'nullable|string',
+            'author' => 'nullable|string|max:255',
+            'featured_image' => 'nullable|url',
+            'source_url' => 'nullable|url',
+            'published_at' => 'nullable|date',
+        ]);
+
+        if (isset($validated['title'])) {
+            $validated['slug'] = Str::slug($validated['title']) . '-' . uniqid();
+        }
+
+        $article->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Article updated successfully',
+            'data' => $article,
+        ]);
+    }
+
+    /**
+     * Remove the specified article.
+     */
+    public function destroy(Article $article): JsonResponse
+    {
+        $article->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Article deleted successfully',
+        ]);
+    }
+}
+
+================================================================================
+4. API ROUTES
+File: routes/api.php
+================================================================================
+
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ArticleController;
+
+Route::apiResource('articles', ArticleController::class);
+
+================================================================================
+5. DATABASE SEEDER (5 Oldest BeyondChats Articles)
+File: database/seeders/ArticleSeeder.php
+================================================================================
+
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Article;
+use Illuminate\Database\Seeder;
+
+class ArticleSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $articles = [
+            [
+                'title' => 'BeyondChats AI Engine v2 is here!',
+                'slug' => 'beyondchats-ai-engine-v2-is-here',
+                'excerpt' => 'Introducing the next generation of our AI engine with improved accuracy and faster response times.',
+                'author' => 'BeyondChats Team',
+                'source_url' => 'https://beyondchats.com/beyondchats-ai-engine-v2-is-here/',
+                'published_at' => '2023-01-15',
+            ],
+            [
+                'title' => 'How to create a free AI chatbot for your website',
+                'slug' => 'how-to-create-a-free-ai-chatbot-for-your-website',
+                'excerpt' => 'Learn how to set up and deploy a free AI-powered chatbot on your website in minutes.',
+                'author' => 'BeyondChats Team',
+                'source_url' => 'https://beyondchats.com/how-to-create-a-free-ai-chatbot-for-your-website/',
+                'published_at' => '2023-02-20',
+            ],
+            [
+                'title' => 'How to get the chat history/transcripts from BeyondChats?',
+                'slug' => 'how-to-get-chat-history-transcripts-from-beyondchats',
+                'excerpt' => 'A comprehensive guide on accessing and exporting your chat history and transcripts from the BeyondChats platform.',
+                'author' => 'BeyondChats Team',
+                'source_url' => 'https://beyondchats.com/how-to-get-the-chat-history-transcripts-from-beyondchats/',
+                'published_at' => '2023-03-10',
+            ],
+            [
+                'title' => 'How to add live chat to your website?',
+                'slug' => 'how-to-add-live-chat-to-your-website',
+                'excerpt' => 'Step-by-step instructions for integrating live chat functionality into your website using BeyondChats.',
+                'author' => 'BeyondChats Team',
+                'source_url' => 'https://beyondchats.com/how-to-add-live-chat-to-your-website/',
+                'published_at' => '2023-04-05',
+            ],
+            [
+                'title' => 'How to share chat transcripts with your team?',
+                'slug' => 'how-to-share-chat-transcripts-with-your-team',
+                'excerpt' => 'Learn the best practices for sharing and collaborating on chat transcripts within your organization.',
+                'author' => 'BeyondChats Team',
+                'source_url' => 'https://beyondchats.com/how-to-share-chat-transcripts-with-your-team/',
+                'published_at' => '2023-05-12',
+            ],
+        ];
+
+        foreach ($articles as $article) {
+            Article::create($article);
+        }
+    }
+}
+
+================================================================================
+6. UPDATE DATABASE SEEDER
+File: database/seeders/DatabaseSeeder.php
+================================================================================
+
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $this->call([
+            ArticleSeeder::class,
+        ]);
+    }
+}
+
+================================================================================
+7. SETUP INSTRUCTIONS
+================================================================================
+
+1. Create a new Laravel project (if you haven't already):
+   composer create-project laravel/laravel beyondchats-api
+
+2. Configure your .env file with database credentials:
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=beyondchats
+   DB_USERNAME=root
+   DB_PASSWORD=your_password
+
+3. Copy the files above into their respective locations
+
+4. Run migrations:
+   php artisan migrate
+
+5. Seed the database:
+   php artisan db:seed
+
+6. Start the server:
+   php artisan serve
+
+================================================================================
+8. API ENDPOINTS
+================================================================================
+
+| Method | Endpoint              | Description           |
+|--------|----------------------|----------------------|
+| GET    | /api/articles        | List all articles    |
+| POST   | /api/articles        | Create new article   |
+| GET    | /api/articles/{id}   | Get single article   |
+| PUT    | /api/articles/{id}   | Update article       |
+| DELETE | /api/articles/{id}   | Delete article       |
+
+================================================================================
+9. EXAMPLE API REQUESTS (cURL)
+================================================================================
+
+# List all articles
+curl -X GET http://localhost:8000/api/articles
+
+# Create a new article
+curl -X POST http://localhost:8000/api/articles \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "New Article Title",
+    "excerpt": "Article excerpt here",
+    "content": "Full article content",
+    "author": "John Doe",
+    "published_at": "2024-01-01"
+  }'
+
+# Get a specific article
+curl -X GET http://localhost:8000/api/articles/1
+
+# Update an article
+curl -X PUT http://localhost:8000/api/articles/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated Title"
+  }'
+
+# Delete an article
+curl -X DELETE http://localhost:8000/api/articles/1
+
+================================================================================
