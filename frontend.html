@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Articles Manager</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background: #f2f2f2; }
+        input, textarea { width: 100%; margin: 4px 0; }
+        button { margin: 5px; }
+    </style>
+</head>
+<body>
+
+<h2>Articles Manager</h2>
+
+<h3>Add / Edit Article</h3>
+<input type="hidden" id="articleId">
+<input id="title" placeholder="Title">
+<input id="slug" placeholder="Slug">
+<input id="author" placeholder="Author">
+<input id="category" placeholder="Category">
+<input id="image_url" placeholder="Image URL">
+<input id="source_url" placeholder="Source URL">
+<input id="published_at" placeholder="YYYY-MM-DD">
+<textarea id="content" placeholder="Content"></textarea>
+<button onclick="saveArticle()">Save</button>
+
+<h3>Articles List</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Title</th>
+<th>Author</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="articles"></tbody>
+</table>
+
+<script>
+const API = "http://127.0.0.1:8000/api/articles";
+
+function loadArticles() {
+    fetch(API)
+    .then(res => res.json())
+    .then(data => {
+        const tbody = document.getElementById("articles");
+        tbody.innerHTML = "";
+        data.forEach((a, i) => {
+            tbody.innerHTML += `
+            <tr>
+                <td>${i+1}</td>
+                <td>${a.title}</td>
+                <td>${a.author}</td>
+                <td>
+                    <button onclick='editArticle(${JSON.stringify(a)})'>Edit</button>
+                    <button onclick='deleteArticle(${a.id})'>Delete</button>
+                </td>
+            </tr>`;
+        });
+    });
+}
+
+function saveArticle() {
+    const id = document.getElementById("articleId").value;
+    const data = {
+        title: title.value,
+        slug: slug.value,
+        author: author.value,
+        category: category.value,
+        image_url: image_url.value,
+        source_url: source_url.value,
+        published_at: published_at.value,
+        content: content.value
+    };
+
+    fetch(id ? API + "/" + id : API, {
+        method: id ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    }).then(() => {
+        document.querySelectorAll("input,textarea").forEach(e => e.value="");
+        loadArticles();
+    });
+}
+
+function editArticle(a) {
+    articleId.value = a.id;
+    title.value = a.title;
+    slug.value = a.slug;
+    author.value = a.author;
+    category.value = a.category;
+    image_url.value = a.image_url;
+    source_url.value = a.source_url;
+    published_at.value = a.published_at;
+    content.value = a.content;
+}
+
+function deleteArticle(id) {
+    fetch(API + "/" + id, { method: "DELETE" })
+    .then(loadArticles);
+}
+
+loadArticles();
+</script>
+
+</body>
+</html>
